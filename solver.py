@@ -10,14 +10,22 @@ class EquationSolver:
             raise ValueError(f"Помилка вводу рівняння: {e}")
 
     def solve_bisection(self, a, b, tol, precision, max_iter=100):
-        """Метод половинного ділення з логуванням кроків та часу."""
         start_time = time.perf_counter()
         a, b = float(a), float(b)
         fa = float(self.expr.subs(self.x, a).evalf())
         fb = float(self.expr.subs(self.x, b).evalf())
 
-        if fa * fb > 0:
-            raise ValueError("f(a) та f(b) повинні мати різні знаки.")
+        plot_range = (a, b)
+
+        if abs(fa) < tol:
+            exec_time = time.perf_counter() - start_time
+            return {"root": round(a, precision), "iterations": 0, "time": exec_time, "log": ["Границя 'a' є точним коренем."], "plot_data": {"root": a, "range": plot_range}}
+        if abs(fb) < tol:
+            exec_time = time.perf_counter() - start_time
+            return {"root": round(b, precision), "iterations": 0, "time": exec_time, "log": ["Границя 'b' є точним коренем."], "plot_data": {"root": b, "range": plot_range}}
+
+        if fa * fb >= 0:
+            raise ValueError("f(a) та f(b) повинні мати різні знаки (функція має перетинати вісь X).")
 
         log = []
         iter_count = 0
@@ -42,10 +50,9 @@ class EquationSolver:
             root = round((a + b) / 2.0, precision)
 
         exec_time = time.perf_counter() - start_time
-        return {"root": root, "iterations": iter_count, "time": exec_time, "log": log}
+        return {"root": root, "iterations": iter_count, "time": exec_time, "log": log, "plot_data": {"root": root, "range": plot_range}}
 
     def solve_newton(self, x0, tol, precision, max_iter=100):
-        """Метод Ньютона з логуванням кроків та часу."""
         start_time = time.perf_counter()
         df = sp.diff(self.expr, self.x)
         x_n = complex(x0)
@@ -74,10 +81,10 @@ class EquationSolver:
             raise ValueError("Метод не зійшовся за задану кількість ітерацій.")
 
         exec_time = time.perf_counter() - start_time
-        return {"root": root, "iterations": iter_count, "time": exec_time, "log": log}
+        plot_range = (root.real - 5, root.real + 5)
+        return {"root": root, "iterations": iter_count, "time": exec_time, "log": log, "plot_data": {"root": root, "range": plot_range}}
 
     def solve_algebraic(self, precision):
-        """Алгебраїчний метод. Не має ітерацій в класичному розумінні, але має час виконання."""
         start_time = time.perf_counter()
         roots = sp.solve(self.expr, self.x)
         
@@ -89,7 +96,8 @@ class EquationSolver:
             complex_roots.append(complex(round(val.real, precision), round(val.imag, precision)))
             
         exec_time = time.perf_counter() - start_time
-        return {"root": complex_roots, "iterations": 1, "time": exec_time, "log": log}
+        
+        return {"root": complex_roots, "iterations": 1, "time": exec_time, "log": log, "plot_data": {"root": complex_roots}}
 
     def save_to_file(self, result_text, filename):
         with open(filename, 'w', encoding='utf-8') as f:
